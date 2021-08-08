@@ -1,0 +1,271 @@
+---
+title: 使用tidymodels预测球员出勤率
+author: liyue
+date: '2021-08-08'
+slug: tidymodels
+categories:
+  - R
+tags:
+  - tidymodels
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,collapse = TRUE,warning = FALSE)
+```
+
+## 探索数据
+
+```{r}
+library(tidyverse)
+```
+
+首先读取数据，在这个出勤率的数据中，weekly_attendance是需要预测的结果。
+
+```{r}
+attendance <- read_csv("E:/git/machine-learning-r-package/datasets/tidytuesday/data/2020/2020-02-04/attendance.csv")
+standings <- read_csv("E:/git/machine-learning-r-package/datasets/tidytuesday/data/2020/2020-02-04/standings.csv")
+
+attendance_joined <- attendance %>%
+  left_join(standings,
+    by = c("year", "team_name", "team")
+  )
+
+attendance_joined
+```
+
+看看不同队伍之间出勤率的差别，以及有无季后赛的影响？
+
+```{r, fig.width=8, fig.height=12}
+attendance_joined %>% 
+  filter(!is.na(weekly_attendance)) %>% 
+  ggplot(., aes(fct_reorder(team_name, weekly_attendance), weekly_attendance, fill = playoffs)) +
+  geom_boxplot(outlier.alpha = 0.3) +
+  labs(fill = NULL, x = NULL, y = "weekly attendance") +
+  theme_bw() +
+  coord_flip() +
+  theme(legend.position = "bottom") 
+```
+
+不同的周对出勤率有没有影响？
+
+```{r}
+attendance_joined %>% 
+  mutate(week = factor(week)) %>% 
+  ggplot(., aes(week, weekly_attendance, fill = week)) +
+  geom_boxplot(show.legend = F, outlier.alpha = 0.3) +
+  labs(x = "week", y = "weekly attendance")+
+  theme_bw()
+```
+
+## 建立模型
+
+首先删除结果变量（weekly attendance）是NA的行，并选择想作为预测变量的列。
+
+```{r}
+attendance_df <- attendance_joined %>% 
+  filter(!is.na(weekly_attendance)) %>% 
+  select(weekly_attendance, team_name, year, week, margin_of_victory, strength_of_schedule, playoffs)
+
+attendance_df
+```
+
+分割数据
+
+```{r}
+library(tidymodels)
+
+attendance_df <- attendance_df[1:1000,]
+
+set.seed(123)
+attendance_split <- attendance_df %>% 
+  initial_split(strata = playoffs)
+
+nfl_train <- training(attendance_split)
+nfl_test <- testing(attendance_split)
+```
+
+```{r}
+attendance_split
+nfl_train
+nfl_test
+```
+
+
+### 建立一个线性回归模型
+
+```{r}
+lm_spec <- linear_reg() %>% set_engine("lm")
+
+lm_fit <- lm_spec %>% fit(weekly_attendance ~ ., data = nfl_train)
+lm_fit
+```
+
+### 建立一个随机森林回归模型
+
+```{r}
+rf_spec <- rand_forest(mode = "regression") %>% set_engine("ranger")
+
+rf_fit <- rf_spec %>% fit(weekly_attendance ~ ., data = nfl_train)
+rf_fit
+```
+
+## 评价模型
+
+```{r}
+lm_test_res <- predict(lm_fit, new_data = nfl_test)
+```
+
+```{r}
+lm_test_res <- nfl_test %>% select(weekly_attendance) %>% 
+  bind_cols(predict(lm_fit, new_data = nfl_test)) %>% 
+  bind_cols(predict(lm_fit, new_data = nfl_test, type = "pred_int"))
+lm_test_res
+```
+
+```{r}
+ggplot(lm_test_res, aes(weekly_attendance, .pred)) +
+  geom_point(alpha=0.5)+
+  stat_smooth(method = "lm")+
+  theme_bw()
+```
+看的出来效果很差。。。
+
+
+
+2个模型一起
+
+```{r}
+# 下面这段合并结果的代码可以用于很多模型，值得学习
+results_train <- lm_fit %>%
+  predict(new_data = nfl_train) %>%
+  mutate(
+    truth = nfl_train$weekly_attendance,
+    model = "lm"
+  ) %>%
+  bind_rows(rf_fit %>%
+    predict(new_data = nfl_train) %>%
+    mutate(
+      truth = nfl_train$weekly_attendance,
+      model = "rf"
+    ))
+results_train
+
+results_test <- lm_fit %>% 
+  predict(new_data = nfl_test) %>% 
+  mutate(truth = nfl_test$weekly_attendance, 
+         model = "lm"
+         ) %>% 
+  bind_rows(rf_fit %>% 
+              predict(new_data = nfl_test
+                      )
+            %>% 
+              mutate(truth = nfl_test$weekly_attendance,
+                     model = "rf"
+                     )
+            )
+results_test
+```
+
+用rmse看看效果
+
+```{r}
+results_train %>% 
+  group_by(model) %>% 
+  rmse(truth = truth, estimate = .pred)
+
+results_test %>% 
+  group_by(model) %>% 
+  rmse(truth = truth, estimate = .pred)
+```
+
+看样子结果不太好
+
+
+### 可视化结果
+
+```{r,fig.width=12,fig.height=6}
+results_test %>%
+  mutate(train = "testing") %>%
+  bind_rows(results_train %>%
+    mutate(train = "training")) %>%
+  ggplot(aes(truth, .pred, color = model)) +
+  geom_abline(lty = 2, color = "gray80", size = 1.5) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~train) +
+  labs(
+    x = "Truth",
+    y = "Predicted attendance",
+    color = "Type of model"
+  )+
+  theme_bw()
+```
+
+## 使用交叉验证再试一次
+
+```{r}
+set.seed(123)
+
+nfl_folds <- vfold_cv(nfl_train, strata = playoffs)
+
+nfl_folds
+
+nfl_folds$splits[[1]] %>% analysis()
+```
+
+```{r}
+rf_res <- fit_resamples(
+  rf_spec,
+  weekly_attendance ~ .,
+  nfl_folds,
+  control = control_resamples(save_pred = TRUE)
+)
+
+rf_res
+```
+
+```{r}
+collect_metrics(rf_res)
+```
+
+```{r}
+assess_res <- collect_predictions(rf_res)
+assess_res
+```
+
+```{r}
+ggplot(assess_res, aes(.pred, weekly_attendance))+
+  geom_point(alpha=0.15)+
+  geom_abline(col="red")+
+  coord_obs_pred()+
+  labs(x="prediction")+
+  theme_bw()
+```
+
+可视化结果
+
+```{r}
+rf_res %>%
+  unnest(.predictions) %>%
+  ggplot(aes(weekly_attendance, .pred, color = id)) +
+  geom_abline(lty = 2, color = "gray80", size = 1.5) +
+  geom_point(alpha = 0.5) +
+  labs(
+    x = "Truth",
+    y = "Predicted game attendance",
+    color = NULL
+  )+
+  theme_bw()
+```
+
+```{r}
+rf_res %>% collect_predictions(summarise = FALSE) %>% 
+  ggplot(., aes(weekly_attendance, .pred, color=id))+
+  geom_abline(lty = 2, color = "gray80", size = 1.5) +
+  geom_point(alpha = 0.5) +
+  labs(
+    x = "Truth",
+    y = "Predicted game attendance",
+    color = NULL
+  )+
+  theme_bw()
+```
