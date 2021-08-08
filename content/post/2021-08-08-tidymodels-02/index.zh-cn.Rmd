@@ -7,7 +7,7 @@ categories:
   - R
 tags:
   - tidymodels
-lastmod: '2021-08-08T21:06:31+08:00'
+lastmod: '2021-08-08T21:23:31+08:00'
 keywords: []
 description: ''
 comment: no
@@ -35,7 +35,7 @@ knitr::opts_chunk$set(echo = TRUE,collapse = TRUE,warning = FALSE)
 
 ## 数据探索
 
-children是结果变量，是一个2分类变量。
+children是结果变量，是一个2分类变量
 
 ```{r}
 library(tidyverse)
@@ -273,4 +273,3 @@ rf_fit %>% predict(new_data = test_proc, type = "prob") %>%
   mutate(truth = hotel_test$children) %>% 
   roc_auc(truth, .pred_children)
 ```
-

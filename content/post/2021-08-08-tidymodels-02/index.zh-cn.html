@@ -7,11 +7,11 @@ categories:
   - R
 tags:
   - tidymodels
-lastmod: '2021-08-08T21:06:31+08:00'
+lastmod: '2021-08-08T21:23:31+08:00'
 keywords: []
 description: ''
 comment: no
-toc: no
+toc: yes
 autoCollapseToc: no
 postMetaInFooter: no
 hiddenFromHomePage: no
@@ -35,4 +35,862 @@ sequenceDiagrams:
 
 </div>
 
-<!--more-->
+<div id="数据探索" class="section level2">
+<h2>数据探索</h2>
+<p>children是结果变量，是一个2分类变量</p>
+<pre class="r"><code>library(tidyverse)
+## -- Attaching packages --------------------------------------- tidyverse 1.3.1 --
+## v ggplot2 3.3.5     v purrr   0.3.4
+## v tibble  3.1.2     v dplyr   1.0.7
+## v tidyr   1.1.3     v stringr 1.4.0
+## v readr   1.4.0     v forcats 0.5.1
+## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()
+
+hotels &lt;- readr::read_csv(&quot;E:/git/machine-learning-r-package/datasets/tidytuesday/data/2020/2020-02-11/hotels.csv&quot;)
+## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   .default = col_double(),
+##   hotel = col_character(),
+##   arrival_date_month = col_character(),
+##   meal = col_character(),
+##   country = col_character(),
+##   market_segment = col_character(),
+##   distribution_channel = col_character(),
+##   reserved_room_type = col_character(),
+##   assigned_room_type = col_character(),
+##   deposit_type = col_character(),
+##   agent = col_character(),
+##   company = col_character(),
+##   customer_type = col_character(),
+##   reservation_status = col_character(),
+##   reservation_status_date = col_date(format = &quot;&quot;)
+## )
+## i Use `spec()` for the full column specifications.
+
+
+hotel_stays &lt;- hotels %&gt;%
+  filter(is_canceled == 0) %&gt;%
+  mutate(
+    children = case_when( # 学习下case_when函数
+      children + babies &gt; 0 ~ &quot;children&quot;,
+      TRUE ~ &quot;none&quot;
+    ),
+    required_car_parking_spaces = case_when(
+      required_car_parking_spaces &gt; 0 ~ &quot;parking&quot;,
+      TRUE ~ &quot;none&quot;
+    )
+  ) %&gt;%
+  select(-is_canceled, -reservation_status, -babies)
+
+hotel_stays
+## # A tibble: 75,166 x 29
+##    hotel      lead_time arrival_date_year arrival_date_mon~ arrival_date_week_n~
+##    &lt;chr&gt;          &lt;dbl&gt;             &lt;dbl&gt; &lt;chr&gt;                            &lt;dbl&gt;
+##  1 Resort Ho~       342              2015 July                                27
+##  2 Resort Ho~       737              2015 July                                27
+##  3 Resort Ho~         7              2015 July                                27
+##  4 Resort Ho~        13              2015 July                                27
+##  5 Resort Ho~        14              2015 July                                27
+##  6 Resort Ho~        14              2015 July                                27
+##  7 Resort Ho~         0              2015 July                                27
+##  8 Resort Ho~         9              2015 July                                27
+##  9 Resort Ho~        35              2015 July                                27
+## 10 Resort Ho~        68              2015 July                                27
+## # ... with 75,156 more rows, and 24 more variables:
+## #   arrival_date_day_of_month &lt;dbl&gt;, stays_in_weekend_nights &lt;dbl&gt;,
+## #   stays_in_week_nights &lt;dbl&gt;, adults &lt;dbl&gt;, children &lt;chr&gt;, meal &lt;chr&gt;,
+## #   country &lt;chr&gt;, market_segment &lt;chr&gt;, distribution_channel &lt;chr&gt;,
+## #   is_repeated_guest &lt;dbl&gt;, previous_cancellations &lt;dbl&gt;,
+## #   previous_bookings_not_canceled &lt;dbl&gt;, reserved_room_type &lt;chr&gt;,
+## #   assigned_room_type &lt;chr&gt;, booking_changes &lt;dbl&gt;, deposit_type &lt;chr&gt;,
+## #   agent &lt;chr&gt;, company &lt;chr&gt;, days_in_waiting_list &lt;dbl&gt;,
+## #   customer_type &lt;chr&gt;, adr &lt;dbl&gt;, required_car_parking_spaces &lt;chr&gt;,
+## #   total_of_special_requests &lt;dbl&gt;, reservation_status_date &lt;date&gt;</code></pre>
+<pre class="r"><code>hotel_stays %&gt;% count(children) # children是结果变量
+## # A tibble: 2 x 2
+##   children     n
+##   &lt;chr&gt;    &lt;int&gt;
+## 1 children  6073
+## 2 none     69093</code></pre>
+<pre class="r"><code>skimr::skim(hotel_stays)</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-3">Table 1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">hotel_stays</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">75166</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">29</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">character</td>
+<td align="left">14</td>
+</tr>
+<tr class="odd">
+<td align="left">Date</td>
+<td align="left">1</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">14</td>
+</tr>
+<tr class="odd">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">empty</th>
+<th align="right">n_unique</th>
+<th align="right">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">hotel</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">10</td>
+<td align="right">12</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">arrival_date_month</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">12</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">children</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">8</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">meal</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">country</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">166</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">market_segment</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">13</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">distribution_channel</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">9</td>
+<td align="right">0</td>
+<td align="right">5</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">reserved_room_type</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">9</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">assigned_room_type</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">10</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">deposit_type</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">10</td>
+<td align="right">10</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">agent</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">315</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">company</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">332</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">customer_type</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">4</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">required_car_parking_spaces</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">7</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: Date</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="left">min</th>
+<th align="left">max</th>
+<th align="left">median</th>
+<th align="right">n_unique</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">reservation_status_date</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="left">2015-07-01</td>
+<td align="left">2017-09-14</td>
+<td align="left">2016-09-01</td>
+<td align="right">805</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">lead_time</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">79.98</td>
+<td align="right">91.11</td>
+<td align="right">0.00</td>
+<td align="right">9.0</td>
+<td align="right">45.0</td>
+<td align="right">124</td>
+<td align="right">737</td>
+<td align="left">▇▂▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">arrival_date_year</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">2016.15</td>
+<td align="right">0.70</td>
+<td align="right">2015.00</td>
+<td align="right">2016.0</td>
+<td align="right">2016.0</td>
+<td align="right">2017</td>
+<td align="right">2017</td>
+<td align="left">▃▁▇▁▆</td>
+</tr>
+<tr class="odd">
+<td align="left">arrival_date_week_number</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">27.08</td>
+<td align="right">13.90</td>
+<td align="right">1.00</td>
+<td align="right">16.0</td>
+<td align="right">28.0</td>
+<td align="right">38</td>
+<td align="right">53</td>
+<td align="left">▆▇▇▇▆</td>
+</tr>
+<tr class="even">
+<td align="left">arrival_date_day_of_month</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">15.84</td>
+<td align="right">8.78</td>
+<td align="right">1.00</td>
+<td align="right">8.0</td>
+<td align="right">16.0</td>
+<td align="right">23</td>
+<td align="right">31</td>
+<td align="left">▇▇▇▇▆</td>
+</tr>
+<tr class="odd">
+<td align="left">stays_in_weekend_nights</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0.93</td>
+<td align="right">0.99</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">1.0</td>
+<td align="right">2</td>
+<td align="right">19</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">stays_in_week_nights</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">2.46</td>
+<td align="right">1.92</td>
+<td align="right">0.00</td>
+<td align="right">1.0</td>
+<td align="right">2.0</td>
+<td align="right">3</td>
+<td align="right">50</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">adults</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.83</td>
+<td align="right">0.51</td>
+<td align="right">0.00</td>
+<td align="right">2.0</td>
+<td align="right">2.0</td>
+<td align="right">2</td>
+<td align="right">4</td>
+<td align="left">▁▂▇▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">is_repeated_guest</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0.04</td>
+<td align="right">0.20</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">previous_cancellations</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0.02</td>
+<td align="right">0.27</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0</td>
+<td align="right">13</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">previous_bookings_not_canceled</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0.20</td>
+<td align="right">1.81</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0</td>
+<td align="right">72</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">booking_changes</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0.29</td>
+<td align="right">0.74</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0</td>
+<td align="right">21</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">days_in_waiting_list</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.59</td>
+<td align="right">14.78</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0</td>
+<td align="right">379</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">adr</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">99.99</td>
+<td align="right">49.21</td>
+<td align="right">-6.38</td>
+<td align="right">67.5</td>
+<td align="right">92.5</td>
+<td align="right">125</td>
+<td align="right">510</td>
+<td align="left">▇▆▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">total_of_special_requests</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">0.71</td>
+<td align="right">0.83</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">1.0</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># 写出这么刘畅的代码取决于对数据的理解以及对tidyverse包的理解
+hotel_stays %&gt;%
+  mutate(arrival_date_month = factor(arrival_date_month, levels = month.name)) %&gt;%
+  count(hotel, arrival_date_month, children) %&gt;%
+  group_by(hotel, children) %&gt;%
+  mutate(proportion = n / sum(n)) %&gt;%
+  ggplot(aes(arrival_date_month, proportion, fill = children)) +
+  geom_col(position = &quot;dodge&quot;) +
+  scale_y_continuous(labels = scales::percent_format()) + # 学习下百分比的用法
+  facet_wrap(~hotel, nrow = 2) +
+  labs(x = NULL, y = &quot;Proportion of hotel stays&quot;, fill = NULL)</code></pre>
+<p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>hotel_stays %&gt;%
+  count(hotel, required_car_parking_spaces, children) %&gt;%
+  group_by(hotel, children) %&gt;%
+  mutate(proportion = n / sum(n)) %&gt;%
+  ggplot(aes(required_car_parking_spaces, proportion, fill = children)) +
+  geom_col(position = &quot;dodge&quot;) +
+  scale_y_continuous(labels = scales::percent_format()) +
+  facet_wrap(~hotel, nrow = 2) +
+  labs(x = NULL, y = &quot;Proportion of hotel stays&quot;, fill = NULL)</code></pre>
+<p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>library(GGally)
+## Registered S3 method overwritten by &#39;GGally&#39;:
+##   method from   
+##   +.gg   ggplot2
+
+hotel_stays %&gt;%
+  select(
+    children, adr,
+    required_car_parking_spaces,
+    total_of_special_requests
+  ) %&gt;%
+  ggpairs(mapping = aes(color = children))
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+</div>
+<div id="建模" class="section level2">
+<h2>建模</h2>
+<div id="数据准备" class="section level3">
+<h3>数据准备</h3>
+<pre class="r"><code>hotels_df &lt;- hotel_stays %&gt;%
+  select(
+    children, hotel, arrival_date_month, meal, adr, adults,
+    required_car_parking_spaces, total_of_special_requests,
+    stays_in_week_nights, stays_in_weekend_nights
+  ) %&gt;%
+  mutate_if(is.character, factor)
+
+hotels_df &lt;- hotels_df[1:1000,]</code></pre>
+<pre class="r"><code>library(tidymodels)
+## Registered S3 method overwritten by &#39;tune&#39;:
+##   method                   from   
+##   required_pkgs.model_spec parsnip
+## -- Attaching packages -------------------------------------- tidymodels 0.1.3 --
+## v broom        0.7.8      v rsample      0.1.0 
+## v dials        0.0.9      v tune         0.1.5 
+## v infer        0.5.4      v workflows    0.2.2 
+## v modeldata    0.1.0      v workflowsets 0.0.2 
+## v parsnip      0.1.6      v yardstick    0.0.8 
+## v recipes      0.1.16
+## -- Conflicts ----------------------------------------- tidymodels_conflicts() --
+## x scales::discard() masks purrr::discard()
+## x dplyr::filter()   masks stats::filter()
+## x recipes::fixed()  masks stringr::fixed()
+## x dplyr::lag()      masks stats::lag()
+## x yardstick::spec() masks readr::spec()
+## x recipes::step()   masks stats::step()
+## * Use tidymodels_prefer() to resolve common conflicts.
+tidymodels_prefer()
+
+set.seed(12)
+hotel_split &lt;- hotels_df %&gt;% 
+  initial_split()
+
+hotel_train &lt;- training(hotel_split)
+hotel_test &lt;- testing(hotel_split)
+
+hotel_rec &lt;- recipe(children ~ ., data = hotel_train) %&gt;%
+  themis::step_downsample(children) %&gt;%
+  step_dummy(all_nominal(), -all_outcomes()) %&gt;%
+  step_zv(all_numeric()) %&gt;%
+  step_normalize(all_numeric()) %&gt;%
+  prep()
+## Registered S3 methods overwritten by &#39;themis&#39;:
+##   method                  from   
+##   bake.step_downsample    recipes
+##   bake.step_upsample      recipes
+##   prep.step_downsample    recipes
+##   prep.step_upsample      recipes
+##   tidy.step_downsample    recipes
+##   tidy.step_upsample      recipes
+##   tunable.step_downsample recipes
+##   tunable.step_upsample   recipes
+
+hotel_rec
+## Data Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##    outcome          1
+##  predictor          9
+## 
+## Training data contained 750 data points and no missing data.
+## 
+## Operations:
+## 
+## Down-sampling based on children [trained]
+## Dummy variables from hotel, arrival_date_month, ... [trained]
+## Zero variance filter removed 11 items [trained]
+## Centering and scaling for adr, adults, ... [trained]</code></pre>
+<pre class="r"><code># 提取准备好的训练集和测试集
+train_proc &lt;- bake(hotel_rec, new_data = NULL)
+test_proc &lt;- bake(hotel_rec, new_data = hotel_test)</code></pre>
+</div>
+<div id="knn" class="section level3">
+<h3>knn</h3>
+<pre class="r"><code>knn_spec &lt;- nearest_neighbor(mode = &quot;classification&quot;) %&gt;% set_engine(&quot;kknn&quot;)
+knn_fit &lt;- knn_spec %&gt;% fit(children ~ ., data = train_proc)
+
+knn_fit
+## parsnip model object
+## 
+## Fit time:  20ms 
+## 
+## Call:
+## kknn::train.kknn(formula = children ~ ., data = data, ks = min_rows(5,     data, 5))
+## 
+## Type of response variable: nominal
+## Minimal misclassification: 0.3348214
+## Best kernel: optimal
+## Best k: 5</code></pre>
+</div>
+<div id="随机森林" class="section level3">
+<h3>随机森林</h3>
+<pre class="r"><code>rf_spec &lt;- rand_forest(mode = &quot;classification&quot;) %&gt;% set_engine(&quot;ranger&quot;)
+rf_fit &lt;- rf_spec %&gt;% fit(children ~ ., data = train_proc)
+
+rf_fit
+## parsnip model object
+## 
+## Fit time:  131ms 
+## Ranger result
+## 
+## Call:
+##  ranger::ranger(x = maybe_data_frame(x), y = y, num.threads = 1,      verbose = FALSE, seed = sample.int(10^5, 1), probability = TRUE) 
+## 
+## Type:                             Probability estimation 
+## Number of trees:                  500 
+## Sample size:                      224 
+## Number of independent variables:  11 
+## Mtry:                             3 
+## Target node size:                 10 
+## Variable importance mode:         none 
+## Splitrule:                        gini 
+## OOB prediction error (Brier s.):  0.1930466</code></pre>
+</div>
+<div id="决策树" class="section level3">
+<h3>决策树</h3>
+<pre class="r"><code>tree_spec &lt;- decision_tree(mode = &quot;classification&quot;) %&gt;% set_engine(&quot;rpart&quot;)
+tree_fit &lt;- tree_spec %&gt;% fit(children ~ ., data = train_proc)
+
+tree_fit
+## parsnip model object
+## 
+## Fit time:  10ms 
+## n= 224 
+## 
+## node), split, n, loss, yval, (yprob)
+##       * denotes terminal node
+## 
+##   1) root 224 112 children (0.5000000 0.5000000)  
+##     2) adr&gt;=0.6137774 59  10 children (0.8305085 0.1694915) *
+##     3) adr&lt; 0.6137774 165  63 none (0.3818182 0.6181818)  
+##       6) adr&gt;=-0.6071345 107  53 none (0.4953271 0.5046729)  
+##        12) required_car_parking_spaces_parking&gt;=0.6947546 21   6 children (0.7142857 0.2857143) *
+##        13) required_car_parking_spaces_parking&lt; 0.6947546 86  38 none (0.4418605 0.5581395)  
+##          26) total_of_special_requests&gt;=1.476998 13   3 children (0.7692308 0.2307692) *
+##          27) total_of_special_requests&lt; 1.476998 73  28 none (0.3835616 0.6164384)  
+##            54) stays_in_week_nights&gt;=-0.4621762 47  22 none (0.4680851 0.5319149)  
+##             108) adr&gt;=-0.293385 33  15 children (0.5454545 0.4545455)  
+##               216) arrival_date_month_August&lt; 0.359874 19   5 children (0.7368421 0.2631579) *
+##               217) arrival_date_month_August&gt;=0.359874 14   4 none (0.2857143 0.7142857) *
+##             109) adr&lt; -0.293385 14   4 none (0.2857143 0.7142857) *
+##            55) stays_in_week_nights&lt; -0.4621762 26   6 none (0.2307692 0.7692308) *
+##       7) adr&lt; -0.6071345 58  10 none (0.1724138 0.8275862) *</code></pre>
+</div>
+</div>
+<div id="评价模型" class="section level2">
+<h2>评价模型</h2>
+<pre class="r"><code>set.seed(1234)
+
+# 模特卡洛法交叉验证
+validation_split &lt;- mc_cv(data = train_proc, prop = 0.9, strata = children)
+validation_split
+## # Monte Carlo cross-validation (0.9/0.1) with 25 resamples  using stratification 
+## # A tibble: 25 x 2
+##    splits           id        
+##    &lt;list&gt;           &lt;chr&gt;     
+##  1 &lt;split [200/24]&gt; Resample01
+##  2 &lt;split [200/24]&gt; Resample02
+##  3 &lt;split [200/24]&gt; Resample03
+##  4 &lt;split [200/24]&gt; Resample04
+##  5 &lt;split [200/24]&gt; Resample05
+##  6 &lt;split [200/24]&gt; Resample06
+##  7 &lt;split [200/24]&gt; Resample07
+##  8 &lt;split [200/24]&gt; Resample08
+##  9 &lt;split [200/24]&gt; Resample09
+## 10 &lt;split [200/24]&gt; Resample10
+## # ... with 15 more rows
+
+validation_split$splits[[1]] %&gt;% analysis() %&gt;% dim()
+## [1] 200  12
+validation_split$splits[[1]] %&gt;% assessment()
+## # A tibble: 24 x 12
+##       adr  adults total_of_special_~ stays_in_week_n~ stays_in_weekend~ children
+##     &lt;dbl&gt;   &lt;dbl&gt;              &lt;dbl&gt;            &lt;dbl&gt;             &lt;dbl&gt; &lt;fct&gt;   
+##  1  1.03  -0.0620              0               -0.226             0.649 children
+##  2  0.842 -2.84               -0.985           -1.17             -0.295 children
+##  3  1.94  -0.0620             -0.985           -0.699             0.649 children
+##  4 -1.04  -0.0620              0                0.247             0.649 children
+##  5 -0.376 -0.0620              0.985           -0.226            -0.295 children
+##  6 -0.193 -0.0620              0.985            0.720             0.649 children
+##  7 -0.347 -0.0620              0.985           -0.226             0.649 children
+##  8  1.38  -0.0620             -0.985            1.19              0.649 children
+##  9  0.113 -0.0620             -0.985           -0.226             0.649 children
+## 10 -0.453 -0.0620              1.97            -0.699            -1.24  children
+## # ... with 14 more rows, and 6 more variables: arrival_date_month_August &lt;dbl&gt;,
+## #   arrival_date_month_July &lt;dbl&gt;, arrival_date_month_September &lt;dbl&gt;,
+## #   meal_FB &lt;dbl&gt;, meal_HB &lt;dbl&gt;, required_car_parking_spaces_parking &lt;dbl&gt;</code></pre>
+<pre class="r"><code>knn_res &lt;- fit_resamples(
+  knn_spec,
+  children ~ ., 
+  validation_split,
+  control = control_resamples(save_pred = T)
+)
+
+knn_res
+## # Resampling results
+## # Monte Carlo cross-validation (0.9/0.1) with 25 resamples  using stratification 
+## # A tibble: 25 x 5
+##    splits           id         .metrics         .notes          .predictions    
+##    &lt;list&gt;           &lt;chr&gt;      &lt;list&gt;           &lt;list&gt;          &lt;list&gt;          
+##  1 &lt;split [200/24]&gt; Resample01 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  2 &lt;split [200/24]&gt; Resample02 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  3 &lt;split [200/24]&gt; Resample03 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  4 &lt;split [200/24]&gt; Resample04 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  5 &lt;split [200/24]&gt; Resample05 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  6 &lt;split [200/24]&gt; Resample06 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  7 &lt;split [200/24]&gt; Resample07 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  8 &lt;split [200/24]&gt; Resample08 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+##  9 &lt;split [200/24]&gt; Resample09 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+## 10 &lt;split [200/24]&gt; Resample10 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
+## # ... with 15 more rows</code></pre>
+<pre class="r"><code>knn_res %&gt;% collect_metrics()
+## # A tibble: 2 x 6
+##   .metric  .estimator  mean     n std_err .config             
+##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
+## 1 accuracy binary     0.67     25  0.0163 Preprocessor1_Model1
+## 2 roc_auc  binary     0.683    25  0.0180 Preprocessor1_Model1
+knn_res %&gt;% collect_metrics(summarise=FALSE)
+## # A tibble: 2 x 6
+##   .metric  .estimator  mean     n std_err .config             
+##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
+## 1 accuracy binary     0.67     25  0.0163 Preprocessor1_Model1
+## 2 roc_auc  binary     0.683    25  0.0180 Preprocessor1_Model1</code></pre>
+<pre class="r"><code>knn_res %&gt;% collect_predictions()
+## # A tibble: 600 x 7
+##    id        .pred_children .pred_none  .row .pred_class children .config       
+##    &lt;chr&gt;              &lt;dbl&gt;      &lt;dbl&gt; &lt;int&gt; &lt;fct&gt;       &lt;fct&gt;    &lt;chr&gt;         
+##  1 Resample~         1           0        15 children    children Preprocessor1~
+##  2 Resample~         0.237       0.763    29 none        children Preprocessor1~
+##  3 Resample~         0.0251      0.975    30 none        children Preprocessor1~
+##  4 Resample~         0.738       0.262    33 children    children Preprocessor1~
+##  5 Resample~         0.284       0.716    34 none        children Preprocessor1~
+##  6 Resample~         0.180       0.820    36 none        children Preprocessor1~
+##  7 Resample~         0.716       0.284    39 children    children Preprocessor1~
+##  8 Resample~         0.763       0.237    58 children    children Preprocessor1~
+##  9 Resample~         0.341       0.659    74 none        children Preprocessor1~
+## 10 Resample~         0.439       0.561    83 none        children Preprocessor1~
+## # ... with 590 more rows</code></pre>
+<pre class="r"><code>rf_res &lt;- fit_resamples(
+  rf_spec,
+  children ~ ., 
+  validation_split,
+  control = control_resamples(save_pred = T)
+)
+
+rf_res %&gt;% collect_metrics()
+## # A tibble: 2 x 6
+##   .metric  .estimator  mean     n std_err .config             
+##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
+## 1 accuracy binary     0.723    25  0.0134 Preprocessor1_Model1
+## 2 roc_auc  binary     0.793    25  0.0143 Preprocessor1_Model1</code></pre>
+<pre class="r"><code>tree_res &lt;- fit_resamples(
+  tree_spec,
+  children ~ ., 
+  validation_split,
+  control = control_resamples(save_pred = T)
+)
+
+tree_res %&gt;% collect_metrics()
+## # A tibble: 2 x 6
+##   .metric  .estimator  mean     n std_err .config             
+##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
+## 1 accuracy binary     0.707    25  0.0166 Preprocessor1_Model1
+## 2 roc_auc  binary     0.726    25  0.0196 Preprocessor1_Model1</code></pre>
+<pre class="r"><code>knn_res %&gt;%
+  unnest(.predictions) %&gt;%
+  mutate(model = &quot;kknn&quot;) %&gt;%
+  bind_rows(tree_res %&gt;%
+    unnest(.predictions) %&gt;%
+    mutate(model = &quot;rpart&quot;)) %&gt;%
+  bind_rows(rf_res %&gt;% 
+    unnest(.predictions) %&gt;% 
+    mutate(model = &quot;ranger&quot;)) %&gt;% 
+  group_by(model) %&gt;%
+  roc_curve(children, .pred_children) %&gt;%
+  ggplot(aes(x = 1 - specificity, y = sensitivity, color = model)) +
+  geom_line(size = 1.5) +
+  geom_abline(
+    lty = 2, alpha = 0.5,
+    color = &quot;gray50&quot;,
+    size = 1.2
+  )</code></pre>
+<p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>随机森林最好</p>
+<pre class="r"><code>knn_conf &lt;- knn_res %&gt;% unnest(.predictions) %&gt;% 
+  conf_mat(children, .pred_class)
+
+knn_conf
+##           Truth
+## Prediction children none
+##   children      193   91
+##   none          107  209</code></pre>
+<pre class="r"><code>knn_conf %&gt;% autoplot()</code></pre>
+<p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<pre class="r"><code>rf_fit %&gt;% predict(new_data = test_proc, type = &quot;prob&quot;) %&gt;% 
+  mutate(truth = hotel_test$children) %&gt;% 
+  roc_auc(truth, .pred_children)
+## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 roc_auc binary         0.752</code></pre>
+</div>
