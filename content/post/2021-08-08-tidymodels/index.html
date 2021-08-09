@@ -12,6 +12,17 @@ tags:
 <script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
 
 
+<div id="前言" class="section level2">
+<h2>前言</h2>
+<p>在机器学习领域，Python是当前当之无愧的最常用，也是最好用的语言，sklearn提供了统一的接口，让大家可以以统一而又简洁的方式尝试各种不同的方法。</p>
+<p>作为一名R语言爱好者，非常开心看到R在机器学习领域新出现的各种R包，比如mlr3，作为经典机器学习R包-mlr的next generation，mlr3使用了更为高级的S6对象，且以<code>data.table</code>为基础，速度更快。</p>
+<p>今天将要介绍的<code>tidymodels</code>包，可以看做是<code>caret</code>的下一代，作者之一也是<code>caret</code>包的作者，且加入了RStudio的阵营，<code>tidymodels</code>在使用时可以无缝衔接<code>tidyverse</code>，从数据探索到建模，统一“tidy”流，整体性更好。</p>
+<p>接下来讲通过多个例子说明<code>tidymodels</code>的具体使用。下面推荐几个学习<code>tidymodels</code>的资源：
+- 官网：<a href="https://github.com/tidymodels/" class="uri">https://github.com/tidymodels/</a>
+- 书籍：<a href="https://www.tmwr.org/">Tdiy Modeling with R</a>
+- 作者之一Julia Silge的<a href="https://juliasilge.com/">博客</a></p>
+<p>本博客大量<code>tidymodels</code>的内容也是翻译自以上资源，部分内容有删改。</p>
+</div>
 <div id="探索数据" class="section level2">
 <h2>探索数据</h2>
 <pre class="r"><code>library(tidyverse)
@@ -23,7 +34,8 @@ tags:
 ## -- Conflicts ------------------------------------------ tidyverse_conflicts() --
 ## x dplyr::filter() masks stats::filter()
 ## x dplyr::lag()    masks stats::lag()</code></pre>
-<p>首先读取数据，在这个出勤率的数据中，weekly_attendance是需要预测的结果。</p>
+<p>首先读取数据，本次数据来源于<a href="https://github.com/rfordatascience/tidytuesday">tidytuesday</a>。</p>
+<p>这是一个NBA球员出勤率数据，通过一系列变量来预测球员出勤率多少，其中weekly_attendance是需要预测的结果。</p>
 <pre class="r"><code>attendance &lt;- read_csv(&quot;E:/git/machine-learning-r-package/datasets/tidytuesday/data/2020/2020-02-04/attendance.csv&quot;)
 ## 
 ## -- Column specification --------------------------------------------------------
@@ -81,7 +93,8 @@ attendance_joined
 ## #   points_against &lt;dbl&gt;, points_differential &lt;dbl&gt;, margin_of_victory &lt;dbl&gt;,
 ## #   strength_of_schedule &lt;dbl&gt;, simple_rating &lt;dbl&gt;, offensive_ranking &lt;dbl&gt;,
 ## #   defensive_ranking &lt;dbl&gt;, playoffs &lt;chr&gt;, sb_winner &lt;chr&gt;</code></pre>
-<p>看看不同队伍之间出勤率的差别，以及有无季后赛的影响？</p>
+<p>可以看到这个数据一共有20列，10846行。</p>
+<p>首先看看不同队伍之间出勤率的差别，以及有无季后赛的影响？</p>
 <pre class="r"><code>attendance_joined %&gt;% 
   filter(!is.na(weekly_attendance)) %&gt;% 
   ggplot(., aes(fct_reorder(team_name, weekly_attendance), weekly_attendance, fill = playoffs)) +
@@ -91,7 +104,7 @@ attendance_joined
   coord_flip() +
   theme(legend.position = &quot;bottom&quot;) </code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="768" /></p>
-<p>不同的周对出勤率有没有影响？</p>
+<p>再看下不同的周对出勤率有没有影响？</p>
 <pre class="r"><code>attendance_joined %&gt;% 
   mutate(week = factor(week)) %&gt;% 
   ggplot(., aes(week, weekly_attendance, fill = week)) +
@@ -99,6 +112,7 @@ attendance_joined
   labs(x = &quot;week&quot;, y = &quot;weekly attendance&quot;)+
   theme_bw()</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>进行了简单的数据之后，我们下面进入建模环节。</p>
 </div>
 <div id="建立模型" class="section level2">
 <h2>建立模型</h2>
@@ -231,7 +245,7 @@ rf_fit &lt;- rf_spec %&gt;% fit(weekly_attendance ~ ., data = nfl_train)
 rf_fit
 ## parsnip model object
 ## 
-## Fit time:  260ms 
+## Fit time:  280ms 
 ## Ranger result
 ## 
 ## Call:
@@ -275,8 +289,8 @@ lm_test_res
   stat_smooth(method = &quot;lm&quot;)+
   theme_bw()
 ## `geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" />
-看的出来效果很差。。。</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>看的出来效果很差。。。</p>
 <p>2个模型一起</p>
 <pre class="r"><code># 下面这段合并结果的代码可以用于很多模型，值得学习
 results_train &lt;- lm_fit %&gt;%
@@ -305,9 +319,8 @@ results_train
 ##  8 52445. 42094 lm   
 ##  9 52417. 50289 lm   
 ## 10 52389. 53472 lm   
-## # ... with 1,490 more rows
-
-results_test &lt;- lm_fit %&gt;% 
+## # ... with 1,490 more rows</code></pre>
+<pre class="r"><code>results_test &lt;- lm_fit %&gt;% 
   predict(new_data = nfl_test) %&gt;% 
   mutate(truth = nfl_test$weekly_attendance, 
          model = &quot;lm&quot;
@@ -370,7 +383,7 @@ results_test %&gt;%
     color = &quot;Type of model&quot;
   )+
   theme_bw()</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="1152" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-16-1.png" width="1152" /></p>
 </div>
 </div>
 <div id="使用交叉验证再试一次" class="section level2">
@@ -461,8 +474,9 @@ assess_res
   coord_obs_pred()+
   labs(x=&quot;prediction&quot;)+
   theme_bw()</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
-<p>可视化结果</p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<div id="可视化结果-1" class="section level3">
+<h3>可视化结果</h3>
 <pre class="r"><code>rf_res %&gt;%
   unnest(.predictions) %&gt;%
   ggplot(aes(weekly_attendance, .pred, color = id)) +
@@ -474,7 +488,8 @@ assess_res
     color = NULL
   )+
   theme_bw()</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<p>以下代码和上面的代码结果一样，不过我更推荐下面这一种，因为官方是这样用的</p>
 <pre class="r"><code>rf_res %&gt;% collect_predictions(summarise = FALSE) %&gt;% 
   ggplot(., aes(weekly_attendance, .pred, color=id))+
   geom_abline(lty = 2, color = &quot;gray80&quot;, size = 1.5) +
@@ -485,5 +500,6 @@ assess_res
     color = NULL
   )+
   theme_bw()</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+</div>
 </div>

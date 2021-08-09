@@ -35,6 +35,9 @@ sequenceDiagrams:
 
 </div>
 
+<p>上次尝试了<code>tidymodels</code>在预测连续型变量中的应用，本次分享的是一个结果为二分类变量的例子。
+数据依然是来自于<a href="https://github.com/rfordatascience/tidytuesday">tidytuesday</a>，可以根据日期自己下载使用。</p>
+<p>本次数据是根据一些列变量来预测住旅馆的人会不会带孩子的数据，通过不同的变量，比如入住时间、房型、住几晚、之前的入住信息等，来预测住宾馆的人到底有没有带小孩。</p>
 <div id="数据探索" class="section level2">
 <h2>数据探索</h2>
 <p>children是结果变量，是一个2分类变量</p>
@@ -109,12 +112,15 @@ hotel_stays
 ## #   agent &lt;chr&gt;, company &lt;chr&gt;, days_in_waiting_list &lt;dbl&gt;,
 ## #   customer_type &lt;chr&gt;, adr &lt;dbl&gt;, required_car_parking_spaces &lt;chr&gt;,
 ## #   total_of_special_requests &lt;dbl&gt;, reservation_status_date &lt;date&gt;</code></pre>
+<p>可以看到一共有75166行，29列，为了节省运算时间（电脑配置不够，:cry），只选取了部分数据。</p>
+<p>看一下结果变量的分布情况</p>
 <pre class="r"><code>hotel_stays %&gt;% count(children) # children是结果变量
 ## # A tibble: 2 x 2
 ##   children     n
 ##   &lt;chr&gt;    &lt;int&gt;
 ## 1 children  6073
 ## 2 none     69093</code></pre>
+<p>简单看下数据具体情况：</p>
 <pre class="r"><code>skimr::skim(hotel_stays)</code></pre>
 <table>
 <caption><span id="tab:unnamed-chunk-3">Table 1: </span>Data summary</caption>
@@ -545,6 +551,7 @@ hotel_stays
 </tr>
 </tbody>
 </table>
+<p>画个图看一下</p>
 <pre class="r"><code># 写出这么刘畅的代码取决于对数据的理解以及对tidyverse包的理解
 hotel_stays %&gt;%
   mutate(arrival_date_month = factor(arrival_date_month, levels = month.name)) %&gt;%
@@ -557,6 +564,7 @@ hotel_stays %&gt;%
   facet_wrap(~hotel, nrow = 2) +
   labs(x = NULL, y = &quot;Proportion of hotel stays&quot;, fill = NULL)</code></pre>
 <p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>再画个图看一下：</p>
 <pre class="r"><code>hotel_stays %&gt;%
   count(hotel, required_car_parking_spaces, children) %&gt;%
   group_by(hotel, children) %&gt;%
@@ -567,6 +575,7 @@ hotel_stays %&gt;%
   facet_wrap(~hotel, nrow = 2) +
   labs(x = NULL, y = &quot;Proportion of hotel stays&quot;, fill = NULL)</code></pre>
 <p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>画一个更复杂的图看一下：</p>
 <pre class="r"><code>library(GGally)
 ## Registered S3 method overwritten by &#39;GGally&#39;:
 ##   method from   
@@ -584,11 +593,13 @@ hotel_stays %&gt;%
 ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 ## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 <p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>接下来是正是的建模过程了。</p>
 </div>
 <div id="建模" class="section level2">
 <h2>建模</h2>
 <div id="数据准备" class="section level3">
 <h3>数据准备</h3>
+<p>选取自己需要的数据：</p>
 <pre class="r"><code>hotels_df &lt;- hotel_stays %&gt;%
   select(
     children, hotel, arrival_date_month, meal, adr, adults,
@@ -598,6 +609,7 @@ hotel_stays %&gt;%
   mutate_if(is.character, factor)
 
 hotels_df &lt;- hotels_df[1:1000,]</code></pre>
+<p>数据预处理过程，主要是通过<code>recipes</code>包完成。</p>
 <pre class="r"><code>library(tidymodels)
 ## Registered S3 method overwritten by &#39;tune&#39;:
 ##   method                   from   
@@ -660,6 +672,7 @@ hotel_rec
 ## Dummy variables from hotel, arrival_date_month, ... [trained]
 ## Zero variance filter removed 11 items [trained]
 ## Centering and scaling for adr, adults, ... [trained]</code></pre>
+<p>分割数据：</p>
 <pre class="r"><code># 提取准备好的训练集和测试集
 train_proc &lt;- bake(hotel_rec, new_data = NULL)
 test_proc &lt;- bake(hotel_rec, new_data = hotel_test)</code></pre>
@@ -672,7 +685,7 @@ knn_fit &lt;- knn_spec %&gt;% fit(children ~ ., data = train_proc)
 knn_fit
 ## parsnip model object
 ## 
-## Fit time:  20ms 
+## Fit time:  21ms 
 ## 
 ## Call:
 ## kknn::train.kknn(formula = children ~ ., data = data, ks = min_rows(5,     data, 5))
@@ -690,7 +703,7 @@ rf_fit &lt;- rf_spec %&gt;% fit(children ~ ., data = train_proc)
 rf_fit
 ## parsnip model object
 ## 
-## Fit time:  131ms 
+## Fit time:  141ms 
 ## Ranger result
 ## 
 ## Call:
@@ -714,7 +727,7 @@ tree_fit &lt;- tree_spec %&gt;% fit(children ~ ., data = train_proc)
 tree_fit
 ## parsnip model object
 ## 
-## Fit time:  10ms 
+## Fit time:  21ms 
 ## n= 224 
 ## 
 ## node), split, n, loss, yval, (yprob)
@@ -779,6 +792,7 @@ validation_split$splits[[1]] %&gt;% assessment()
 ## # ... with 14 more rows, and 6 more variables: arrival_date_month_August &lt;dbl&gt;,
 ## #   arrival_date_month_July &lt;dbl&gt;, arrival_date_month_September &lt;dbl&gt;,
 ## #   meal_FB &lt;dbl&gt;, meal_HB &lt;dbl&gt;, required_car_parking_spaces_parking &lt;dbl&gt;</code></pre>
+<p>knn的交叉验证</p>
 <pre class="r"><code>knn_res &lt;- fit_resamples(
   knn_spec,
   children ~ ., 
@@ -803,6 +817,7 @@ knn_res
 ##  9 &lt;split [200/24]&gt; Resample09 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
 ## 10 &lt;split [200/24]&gt; Resample10 &lt;tibble [2 x 4]&gt; &lt;tibble [0 x 1~ &lt;tibble [24 x 6~
 ## # ... with 15 more rows</code></pre>
+<p>查看结果</p>
 <pre class="r"><code>knn_res %&gt;% collect_metrics()
 ## # A tibble: 2 x 6
 ##   .metric  .estimator  mean     n std_err .config             
@@ -815,6 +830,7 @@ knn_res %&gt;% collect_metrics(summarise=FALSE)
 ##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
 ## 1 accuracy binary     0.67     25  0.0163 Preprocessor1_Model1
 ## 2 roc_auc  binary     0.683    25  0.0180 Preprocessor1_Model1</code></pre>
+<p>查看每一折里面的结果</p>
 <pre class="r"><code>knn_res %&gt;% collect_predictions()
 ## # A tibble: 600 x 7
 ##    id        .pred_children .pred_none  .row .pred_class children .config       
@@ -830,6 +846,7 @@ knn_res %&gt;% collect_metrics(summarise=FALSE)
 ##  9 Resample~         0.341       0.659    74 none        children Preprocessor1~
 ## 10 Resample~         0.439       0.561    83 none        children Preprocessor1~
 ## # ... with 590 more rows</code></pre>
+<p>随机森林的结果</p>
 <pre class="r"><code>rf_res &lt;- fit_resamples(
   rf_spec,
   children ~ ., 
@@ -843,6 +860,7 @@ rf_res %&gt;% collect_metrics()
 ##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
 ## 1 accuracy binary     0.723    25  0.0134 Preprocessor1_Model1
 ## 2 roc_auc  binary     0.793    25  0.0143 Preprocessor1_Model1</code></pre>
+<p>决策树结果</p>
 <pre class="r"><code>tree_res &lt;- fit_resamples(
   tree_spec,
   children ~ ., 
@@ -856,6 +874,7 @@ tree_res %&gt;% collect_metrics()
 ##   &lt;chr&gt;    &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;               
 ## 1 accuracy binary     0.707    25  0.0166 Preprocessor1_Model1
 ## 2 roc_auc  binary     0.726    25  0.0196 Preprocessor1_Model1</code></pre>
+<p>3种算法放在一起画图：</p>
 <pre class="r"><code>knn_res %&gt;%
   unnest(.predictions) %&gt;%
   mutate(model = &quot;kknn&quot;) %&gt;%
@@ -875,7 +894,8 @@ tree_res %&gt;% collect_metrics()
     size = 1.2
   )</code></pre>
 <p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
-<p>随机森林最好</p>
+<p>从上图中可以看出随机森林最好</p>
+<p>下面是一个混淆矩阵的结果：</p>
 <pre class="r"><code>knn_conf &lt;- knn_res %&gt;% unnest(.predictions) %&gt;% 
   conf_mat(children, .pred_class)
 
@@ -884,8 +904,10 @@ knn_conf
 ## Prediction children none
 ##   children      193   91
 ##   none          107  209</code></pre>
+<p>可视化混淆矩阵：</p>
 <pre class="r"><code>knn_conf %&gt;% autoplot()</code></pre>
 <p><img src="/post/2021-08-08-tidymodels-02/index.zh-cn_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<p>使用随机森林预测新的数据：</p>
 <pre class="r"><code>rf_fit %&gt;% predict(new_data = test_proc, type = &quot;prob&quot;) %&gt;% 
   mutate(truth = hotel_test$children) %&gt;% 
   roc_auc(truth, .pred_children)
