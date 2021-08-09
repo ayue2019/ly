@@ -33,6 +33,11 @@ sequenceDiagrams:
 knitr::opts_chunk$set(echo = TRUE,collapse = TRUE,warning = FALSE)
 ```
 
+上次尝试了`tidymodels`在预测连续型变量中的应用，本次分享的是一个结果为二分类变量的例子。
+数据依然是来自于[tidytuesday](https://github.com/rfordatascience/tidytuesday)，可以根据日期自己下载使用。
+
+本次数据是根据一些列变量来预测住旅馆的人会不会带孩子的数据，通过不同的变量，比如入住时间、房型、住几晚、之前的入住信息等，来预测住宾馆的人到底有没有带小孩。
+
 ## 数据探索
 
 children是结果变量，是一个2分类变量
@@ -60,13 +65,21 @@ hotel_stays <- hotels %>%
 hotel_stays
 ```
 
+可以看到一共有75166行，29列，为了节省运算时间（电脑配置不够，:cry），只选取了部分数据。
+
+看一下结果变量的分布情况
+
 ```{r}
 hotel_stays %>% count(children) # children是结果变量
 ```
 
+简单看下数据具体情况：
+
 ```{r}
 skimr::skim(hotel_stays)
 ```
+
+画个图看一下
 
 ```{r}
 # 写出这么刘畅的代码取决于对数据的理解以及对tidyverse包的理解
@@ -82,6 +95,8 @@ hotel_stays %>%
   labs(x = NULL, y = "Proportion of hotel stays", fill = NULL)
 ```
 
+再画个图看一下：
+
 ```{r}
 hotel_stays %>%
   count(hotel, required_car_parking_spaces, children) %>%
@@ -93,6 +108,8 @@ hotel_stays %>%
   facet_wrap(~hotel, nrow = 2) +
   labs(x = NULL, y = "Proportion of hotel stays", fill = NULL)
 ```
+
+画一个更复杂的图看一下：
 
 ```{r}
 library(GGally)
@@ -106,9 +123,14 @@ hotel_stays %>%
   ggpairs(mapping = aes(color = children))
 ```
 
+
+接下来是正是的建模过程了。
+
 ## 建模
 
 ### 数据准备
+
+选取自己需要的数据：
 
 ```{r}
 hotels_df <- hotel_stays %>%
@@ -122,6 +144,7 @@ hotels_df <- hotel_stays %>%
 hotels_df <- hotels_df[1:1000,]
 ```
 
+数据预处理过程，主要是通过`recipes`包完成。
 
 ```{r}
 library(tidymodels)
@@ -143,6 +166,8 @@ hotel_rec <- recipe(children ~ ., data = hotel_train) %>%
 
 hotel_rec
 ```
+
+分割数据：
 
 ```{r}
 # 提取准备好的训练集和测试集
@@ -190,6 +215,8 @@ validation_split$splits[[1]] %>% analysis() %>% dim()
 validation_split$splits[[1]] %>% assessment()
 ```
 
+knn的交叉验证
+
 ```{r}
 knn_res <- fit_resamples(
   knn_spec,
@@ -201,15 +228,20 @@ knn_res <- fit_resamples(
 knn_res
 ```
 
+查看结果
+
 ```{r}
 knn_res %>% collect_metrics()
 knn_res %>% collect_metrics(summarise=FALSE)
 ```
 
+查看每一折里面的结果
+
 ```{r}
 knn_res %>% collect_predictions()
 ```
 
+随机森林的结果
 
 ```{r}
 rf_res <- fit_resamples(
@@ -222,6 +254,8 @@ rf_res <- fit_resamples(
 rf_res %>% collect_metrics()
 ```
 
+决策树结果
+
 ```{r}
 tree_res <- fit_resamples(
   tree_spec,
@@ -233,6 +267,7 @@ tree_res <- fit_resamples(
 tree_res %>% collect_metrics()
 ```
 
+3种算法放在一起画图：
 
 ```{r}
 knn_res %>%
@@ -255,7 +290,9 @@ knn_res %>%
   )
 ```
 
-随机森林最好
+从上图中可以看出随机森林最好
+
+下面是一个混淆矩阵的结果：
 
 ```{r}
 knn_conf <- knn_res %>% unnest(.predictions) %>% 
@@ -264,9 +301,13 @@ knn_conf <- knn_res %>% unnest(.predictions) %>%
 knn_conf
 ```
 
+可视化混淆矩阵：
+
 ```{r}
 knn_conf %>% autoplot()
 ```
+
+使用随机森林预测新的数据：
 
 ```{r}
 rf_fit %>% predict(new_data = test_proc, type = "prob") %>% 

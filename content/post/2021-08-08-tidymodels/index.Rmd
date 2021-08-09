@@ -10,8 +10,27 @@ tags:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE,collapse = TRUE,warning = FALSE)
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	collapse = TRUE
+)
 ```
+
+## 前言
+
+在机器学习领域，Python是当前当之无愧的最常用，也是最好用的语言，sklearn提供了统一的接口，让大家可以以统一而又简洁的方式尝试各种不同的方法。
+
+作为一名R语言爱好者，非常开心看到R在机器学习领域新出现的各种R包，比如mlr3，作为经典机器学习R包-mlr的next generation，mlr3使用了更为高级的S6对象，且以`data.table`为基础，速度更快。
+
+今天将要介绍的`tidymodels`包，可以看做是`caret`的下一代，作者之一也是`caret`包的作者，且加入了RStudio的阵营，`tidymodels`在使用时可以无缝衔接`tidyverse`，从数据探索到建模，统一“tidy”流，整体性更好。
+
+接下来讲通过多个例子说明`tidymodels`的具体使用。下面推荐几个学习`tidymodels`的资源：
+- 官网：https://github.com/tidymodels/
+- 书籍：[Tdiy Modeling with R](https://www.tmwr.org/)
+- 作者之一Julia Silge的[博客](https://juliasilge.com/)
+
+本博客大量`tidymodels`的内容也是翻译自以上资源，部分内容有删改。
 
 ## 探索数据
 
@@ -19,7 +38,9 @@ knitr::opts_chunk$set(echo = TRUE,collapse = TRUE,warning = FALSE)
 library(tidyverse)
 ```
 
-首先读取数据，在这个出勤率的数据中，weekly_attendance是需要预测的结果。
+首先读取数据，本次数据来源于[tidytuesday](https://github.com/rfordatascience/tidytuesday)。
+
+这是一个NBA球员出勤率数据，通过一系列变量来预测球员出勤率多少，其中weekly_attendance是需要预测的结果。
 
 ```{r}
 attendance <- read_csv("E:/git/machine-learning-r-package/datasets/tidytuesday/data/2020/2020-02-04/attendance.csv")
@@ -33,7 +54,9 @@ attendance_joined <- attendance %>%
 attendance_joined
 ```
 
-看看不同队伍之间出勤率的差别，以及有无季后赛的影响？
+可以看到这个数据一共有20列，10846行。
+
+首先看看不同队伍之间出勤率的差别，以及有无季后赛的影响？
 
 ```{r, fig.width=8, fig.height=12}
 attendance_joined %>% 
@@ -46,7 +69,7 @@ attendance_joined %>%
   theme(legend.position = "bottom") 
 ```
 
-不同的周对出勤率有没有影响？
+再看下不同的周对出勤率有没有影响？
 
 ```{r}
 attendance_joined %>% 
@@ -56,6 +79,8 @@ attendance_joined %>%
   labs(x = "week", y = "weekly attendance")+
   theme_bw()
 ```
+
+进行了简单的数据之后，我们下面进入建模环节。
 
 ## 建立模型
 
@@ -128,6 +153,7 @@ ggplot(lm_test_res, aes(weekly_attendance, .pred)) +
   stat_smooth(method = "lm")+
   theme_bw()
 ```
+
 看的出来效果很差。。。
 
 
@@ -149,7 +175,10 @@ results_train <- lm_fit %>%
       model = "rf"
     ))
 results_train
+```
 
+
+```{r}
 results_test <- lm_fit %>% 
   predict(new_data = nfl_test) %>% 
   mutate(truth = nfl_test$weekly_attendance, 
@@ -241,7 +270,7 @@ ggplot(assess_res, aes(.pred, weekly_attendance))+
   theme_bw()
 ```
 
-可视化结果
+### 可视化结果
 
 ```{r}
 rf_res %>%
@@ -256,6 +285,8 @@ rf_res %>%
   )+
   theme_bw()
 ```
+
+以下代码和上面的代码结果一样，不过我更推荐下面这一种，因为官方是这样用的
 
 ```{r}
 rf_res %>% collect_predictions(summarise = FALSE) %>% 
