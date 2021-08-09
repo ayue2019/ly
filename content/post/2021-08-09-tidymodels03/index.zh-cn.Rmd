@@ -1,0 +1,115 @@
+---
+title: 使用tidymodels调整超参数
+author: liyue
+date: '2021-08-09'
+slug: []
+categories:
+  - R
+tags:
+  - tidymodels
+lastmod: '2021-08-09T21:28:59+08:00'
+keywords: []
+description: ''
+comment: no
+toc: yes
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, collapse=TRUE,warning=TRUE)
+```
+
+今天学习一下使用`tidymodels`调参，数据集依然是来自于[tidytuesday](https://github.com/rfordatascience/tidytuesday)。
+
+## 数据探索
+
+```{r}
+library(tidyverse)
+
+food_consumption <- readr::read_csv("E:/git/machine-learning-r-package/datasets/tidytuesday/data/2020/2020-02-18/food_consumption.csv")
+
+food_consumption
+```
+
+```{r}
+library(countrycode)
+library(janitor)
+
+food <- food_consumption %>%
+  select(-co2_emmission) %>%
+  pivot_wider(
+    names_from = food_category,
+    values_from = consumption
+  ) %>%
+  clean_names() %>%
+  mutate(continent = countrycode(
+    country,
+    origin = "country.name",
+    destination = "continent"
+  )) %>%
+  mutate(asia = case_when(
+    continent == "Asia" ~ "Asia",
+    TRUE ~ "Other"
+  )) %>%
+  select(-country, -continent) %>%
+  mutate_if(is.character, factor)
+
+food
+```
+
+```{r}
+library(GGally)
+ggscatmat(food, columns = 1:11, color = "asia", alpha = 0.7)
+```
+
+```{r}
+library(tidymodels)
+
+set.seed(1234)
+food_boot <- bootstraps(food, times = 30)
+food_boot
+```
+
+```{r}
+rf_spec <- rand_forest(
+  mode = "classification",
+  mtry = tune(),
+  trees = 1000,
+  min_n = tune()
+) %>%
+  set_engine("ranger")
+
+rf_spec
+```
+
+```{r}
+doParallel::registerDoParallel()
+
+rf_grid <- tune_grid(
+  rf_spec,
+  asia ~ .,
+  resamples = food_boot
+)
+
+rf_grid
+```
+
+
+```{r}
+rf_grid %>% collect_metrics()
+rf_grid %>% show_best("roc_auc")
+```
