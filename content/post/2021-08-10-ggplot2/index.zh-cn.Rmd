@@ -1,0 +1,63 @@
+---
+title: ggplot2画坐标轴为百分比形式的折线图
+author: liyue
+date: '2021-08-10'
+slug: []
+categories:
+  - R
+tags:
+  - plot
+  - ggplot2
+lastmod: '2021-08-10T19:31:09+08:00'
+keywords: []
+description: ''
+comment: no
+toc: no
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+记录一下如何使用`ggplot2`画出坐标轴为百分比形式的图形，其实主要就是`scales::percent()`和`scales::percent_format()`这2个函数的使用。
+
+首先加载R包及数据：
+
+```{r}
+library(ggplot2)
+library(ggsci)
+library(ggthemes)
+df4 <- read.csv('E:/projects/liuyp/刘瑶萍报表/df4.csv',header = T)
+
+# 看一下数据样式
+df4
+```
+
+然后是画图，一定要注意数据形式
+
+```{r,fig.width=8,fig.height=5,fig.align='center'}
+# 折线图
+ggplot(df4,aes(year,value))+
+  geom_line(size=1.5)+
+  geom_point(size=5,color='red')+
+  geom_text(aes(y=value+0.05,label=scales::percent(value,accuracy = 0.01)),size=5)+
+  labs(x=NULL,y=NULL)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  theme(axis.text = element_text(color = 'black',size = 16),
+        legend.position = 'bottom',
+        legend.title = element_text(color = 'black',size = 16),
+        legend.text = element_text(color = 'black',size = 16)
+  )+
+  theme_hc()
+```

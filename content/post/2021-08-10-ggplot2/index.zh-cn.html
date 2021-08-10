@@ -1,0 +1,67 @@
+---
+title: ggplot2画坐标轴为百分比形式的折线图
+author: liyue
+date: '2021-08-10'
+slug: []
+categories:
+  - R
+tags:
+  - plot
+  - ggplot2
+lastmod: '2021-08-10T19:31:09+08:00'
+keywords: []
+description: ''
+comment: no
+toc: no
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+
+</div>
+
+<p>记录一下如何使用<code>ggplot2</code>画出坐标轴为百分比形式的图形，其实主要就是<code>scales::percent()</code>和<code>scales::percent_format()</code>这2个函数的使用。</p>
+<p>首先加载R包及数据：</p>
+<pre class="r"><code>library(ggplot2)
+library(ggsci)
+library(ggthemes)
+df4 &lt;- read.csv(&#39;E:/projects/liuyp/刘瑶萍报表/df4.csv&#39;,header = T)
+
+# 看一下数据样式
+df4</code></pre>
+<pre><code>##   year  value
+## 1 2017 0.1503
+## 2 2018 0.2281
+## 3 2019 0.4364
+## 4 2020 0.5916</code></pre>
+<p>然后是画图，一定要注意数据形式</p>
+<pre class="r"><code># 折线图
+ggplot(df4,aes(year,value))+
+  geom_line(size=1.5)+
+  geom_point(size=5,color=&#39;red&#39;)+
+  geom_text(aes(y=value+0.05,label=scales::percent(value,accuracy = 0.01)),size=5)+
+  labs(x=NULL,y=NULL)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  theme(axis.text = element_text(color = &#39;black&#39;,size = 16),
+        legend.position = &#39;bottom&#39;,
+        legend.title = element_text(color = &#39;black&#39;,size = 16),
+        legend.text = element_text(color = &#39;black&#39;,size = 16)
+  )+
+  theme_hc()</code></pre>
+<p><img src="/post/2021-08-10-ggplot2/index.zh-cn_files/figure-html/unnamed-chunk-2-1.png" width="768" style="display: block; margin: auto;" /></p>
