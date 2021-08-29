@@ -1,0 +1,85 @@
+---
+title: "Rmd生成中文PDF"
+author: "liyue"
+date: '2021-08-29'
+slug: []
+categories: R
+tags:
+- rmd
+- plot
+lastmod: '2021-08-29T19:03:09+08:00'
+keywords: []
+description: ''
+comment: no
+toc: no
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+在使用Rmd生成中文PDF的过程中遇到了很多问题，查阅了很多资料才解决，记录下解决方式。
+
+在搜索解决方案的过程中，以下2个帖子对我帮助较大：
+- [Rmarkdown安装配置、输出PDF正文中文以及图片中文配置](https://blog.csdn.net/u012111465/article/details/79945372)
+- [Rmarkdown转中文PDF遇到的问题](https://blog.csdn.net/arcers/article/details/85281933?comment_content=%E7%BB%88%E4%BA%8E%E8%A7%A3%E5%86%B3%E4%BA%86rstudio%E4%B8%ADRmarkdown+%E7%9A%84.rmd%E6%96%87%E4%BB%B6knit%E6%88%90pdf%E4%BA%86%EF%BC%8C%E5%A4%AA%E6%84%9F%E8%B0%A2%E5%8D%9A%E4%B8%BB%E4%BA%86&comment_replyId=&article_id=85281933&comment_userId=&commentId=)
+
+我遇到的问题主要有2个：
+- 不能生成中文PDF
+- 生成的PDF里面，图片里的中文显示为乱码
+
+下面直接说解决方案。
+
+首先是Rmd生成中文PDF问题，需要安装LATEX套件，这里建议直接使用谢益辉大神的R包`tinytex`，然后使用`tinytex::install_tinytex()`安装LATEX相关的东西。
+安装R包`rticles`和`showtext`。
+
+此时新建Rmarkdown时，可以直接从模板中选择`Ctex document`，这是谢大神专门为中文准备的模板，此时已经可以输出中文PDF了，但是PDF中的图片如果有中文则还是显示为乱码。
+
+上面的2个链接中说到了在头文件中更改图形设备的方法，但是在我的电脑上只有bmp、png能用，生成的图片实在是太模糊。最终使用`showtext`包解决了问题。
+
+只需要把Rmd的头文件更改成如下并添加下面的代码即可：
+
+```
+---
+title: "便秘中医药数据挖掘"
+author:
+  - 厉越
+documentclass: ctexart
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = F,collapse = T,fig.align='center',fig.pos='H',fig.showtext = T)
+```
+
+```{r echo=FALSE,warning = F,message=FALSE}
+library(showtext)
+```
+```
+
+使用如上的设置后，就能顺利输出中文PDF了，即使有图片也可以正确显示。
+
+
+
+
+
+
+
+
+
+
