@@ -1,0 +1,70 @@
+---
+title: Rmarkdown生成中文PDF
+author: ''
+date: '2021-08-29'
+slug: []
+categories:
+  - R
+tags:
+  - rmd
+  - plot
+lastmod: '2021-08-29T19:36:49+08:00'
+keywords: []
+description: ''
+comment: no
+toc: no
+autoCollapseToc: no
+postMetaInFooter: no
+hiddenFromHomePage: no
+contentCopyright: no
+reward: no
+mathjax: no
+mathjaxEnableSingleDollar: no
+mathjaxEnableAutoNumber: no
+hideHeaderAndFooter: no
+flowchartDiagrams:
+  enable: no
+  options: ''
+sequenceDiagrams:
+  enable: no
+  options: ''
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+
+</div>
+
+<p>在使用Rmd生成中文PDF的过程中遇到了很多问题，查阅了很多资料才解决，记录下解决方式。</p>
+<p>在搜索解决方案的过程中，以下2个帖子对我帮助较大：</p>
+<ul>
+<li><a href="https://blog.csdn.net/u012111465/article/details/79945372">Rmarkdown安装配置、输出PDF正文中文以及图片中文配置</a></li>
+<li><a href="https://blog.csdn.net/arcers/article/details/85281933?comment_content=%E7%BB%88%E4%BA%8E%E8%A7%A3%E5%86%B3%E4%BA%86rstudio%E4%B8%ADRmarkdown+%E7%9A%84.rmd%E6%96%87%E4%BB%B6knit%E6%88%90pdf%E4%BA%86%EF%BC%8C%E5%A4%AA%E6%84%9F%E8%B0%A2%E5%8D%9A%E4%B8%BB%E4%BA%86&amp;comment_replyId=&amp;article_id=85281933&amp;comment_userId=&amp;commentId=">Rmarkdown转中文PDF遇到的问题</a></li>
+</ul>
+<p>我遇到的问题主要有2个：</p>
+<ul>
+<li>不能生成中文PDF</li>
+<li>生成的PDF里面，图片里的中文显示为乱码</li>
+</ul>
+<p>下面直接说解决方案。</p>
+<p>首先是Rmd生成中文PDF问题，需要安装LATEX套件，这里建议直接使用谢益辉大神的R包<code>tinytex</code>，然后使用<code>tinytex::install_tinytex()</code>安装LATEX相关的东西。
+安装R包<code>rticles</code>和<code>showtext</code>。</p>
+<p>此时新建Rmarkdown时，可以直接从模板中选择<code>Ctex document</code>，这是谢大神专门为中文准备的模板，此时已经可以输出中文PDF了，但是PDF中的图片如果有中文则还是显示为乱码。</p>
+<p>上面的2个链接中说到了在头文件中更改图形设备的方法，但是在我的电脑上只有bmp、png能用，生成的图片实在是太模糊。最终使用<code>showtext</code>包解决了问题。</p>
+<p>只需要把Rmd的头文件更改成如下：</p>
+<pre class="r"><code>title: &quot;这是标题&quot;
+author:
+ - liyue
+documentclass: ctexart
+output:
+ rticles::ctex:
+  fig_caption: yes
+  number_sections: yes
+  toc: yes</code></pre>
+<p>并添加以下2段R代码段即可：</p>
+<pre class="r"><code>{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = F,collapse = T,fig.align=&#39;center&#39;,fig.pos=&#39;H&#39;,fig.showtext = T)</code></pre>
+<pre class="r"><code>{r echo=FALSE,warning = F,message=FALSE}
+library(showtext)</code></pre>
+<p>这样就能顺利输出中文PDF了，图片中有中文也能正确显示。</p>
